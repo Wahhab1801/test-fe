@@ -52,6 +52,8 @@ Before you begin, ensure you have:
    LIVEKIT_API_KEY=your_api_key_here
    LIVEKIT_API_SECRET=your_api_secret_here
    NEXT_PUBLIC_LIVEKIT_URL=wss://your-livekit-url
+   NEXT_PUBLIC_AGENT_NAME=my-voice-agent
+   NEXT_PUBLIC_ROOM_NAME=pre-test-room-3
    ```
 
    > **Important**: Never commit your `.env.local` file to version control. It's already included in `.gitignore`.
@@ -167,6 +169,8 @@ await dispatchClient.createDispatch(
 | `LIVEKIT_API_KEY` | Your LiveKit API key | `APIxxxxxxx` |
 | `LIVEKIT_API_SECRET` | Your LiveKit API secret | `xxxxxxxxxx` |
 | `NEXT_PUBLIC_LIVEKIT_URL` | LiveKit WebSocket URL | `wss://your-project.livekit.cloud` |
+| `NEXT_PUBLIC_AGENT_NAME` | Agent name configured in backend/LiveKit Cloud | `my-voice-agent` |
+| `NEXT_PUBLIC_ROOM_NAME` | Default room to join when requesting a token | `pre-test-room-3` |
 
 ## Deployment
 
