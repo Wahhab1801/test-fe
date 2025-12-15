@@ -11,11 +11,11 @@ const AGENT_NAME =
 function normalizeDispatchState(state: any): string | undefined {
   if (state === undefined || state === null) return undefined;
   if (typeof state === 'string') return state;
-  if (typeof state === 'number') return AgentDispatchState[state] ?? String(state);
+  if (typeof state === 'number') return (AgentDispatchState as any)[state] ?? String(state);
   if (typeof state === 'object') {
     const inner = (state as any).state ?? (state as any).value ?? (state as any).status;
     if (typeof inner === 'string') return inner;
-    if (typeof inner === 'number') return AgentDispatchState[inner] ?? String(inner);
+    if (typeof inner === 'number') return (AgentDispatchState as any)[inner] ?? String(inner);
     try {
       return JSON.stringify(state);
     } catch {
@@ -93,9 +93,10 @@ export async function GET(req: NextRequest) {
       );
       agentDispatchId = dispatch?.id;
       dispatchState = normalizeDispatchState(dispatch?.state);
-      dispatchJobs = Array.isArray(dispatch?.jobs) ? dispatch.jobs.length : undefined;
-      jobStatuses = Array.isArray(dispatch?.jobs)
-        ? dispatch.jobs.map((j: any) => ({
+      const jobs = (dispatch as any)?.jobs;
+      dispatchJobs = Array.isArray(jobs) ? jobs.length : undefined;
+      jobStatuses = Array.isArray(jobs)
+        ? jobs.map((j: any) => ({
             id: j?.id,
             status: normalizeDispatchState(j?.state?.status),
             workerId: j?.state?.workerId,
@@ -108,9 +109,10 @@ export async function GET(req: NextRequest) {
       if (latest) {
         agentDispatchId = latest.id;
         dispatchState = normalizeDispatchState(latest.state);
-        dispatchJobs = Array.isArray(latest.jobs) ? latest.jobs.length : dispatchJobs;
-        jobStatuses = Array.isArray(latest.jobs)
-          ? latest.jobs.map((j: any) => ({
+        const latestJobs = (latest as any)?.jobs;
+        dispatchJobs = Array.isArray(latestJobs) ? latestJobs.length : dispatchJobs;
+        jobStatuses = Array.isArray(latestJobs)
+          ? latestJobs.map((j: any) => ({
               id: j?.id,
               status: normalizeDispatchState(j?.state?.status),
               workerId: j?.state?.workerId,
@@ -135,9 +137,10 @@ export async function GET(req: NextRequest) {
         const newDispatch = dispatches[0];
         agentDispatchId = newDispatch?.id || 'created-after-room-init';
         dispatchState = normalizeDispatchState(newDispatch?.state);
-        dispatchJobs = Array.isArray(newDispatch?.jobs) ? newDispatch.jobs.length : undefined;
-        jobStatuses = Array.isArray(newDispatch?.jobs)
-          ? newDispatch.jobs.map((j: any) => ({
+        const newJobs = (newDispatch as any)?.jobs;
+        dispatchJobs = Array.isArray(newJobs) ? newJobs.length : undefined;
+        jobStatuses = Array.isArray(newJobs)
+          ? newJobs.map((j: any) => ({
               id: j?.id,
               status: normalizeDispatchState(j?.state?.status),
               workerId: j?.state?.workerId,
