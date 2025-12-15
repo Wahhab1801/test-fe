@@ -9,13 +9,17 @@ import {
   useConnectionState,
   useVoiceAssistant,
   useParticipants,
+  StartAudio,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { Track, Participant } from "livekit-client";
 import { useEffect, useRef, useState } from "react";
 
-const ROOM_NAME =
-  process.env.NEXT_PUBLIC_ROOM_NAME || "pre-test-room-3";
+const DEFAULT_SESSION_ROOM = `session-${
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2, 10)
+}`;
 const AGENT_NAME =
   process.env.NEXT_PUBLIC_AGENT_NAME || "my-voice-agent";
 
@@ -35,7 +39,16 @@ function isAgentIdentity(identity?: string | null) {
 
 export default function Room() {
   const [token, setToken] = useState("");
-  const [agentInfo, setAgentInfo] = useState<any>(null);
+  const [roomName, setRoomName] = useState<string>(DEFAULT_SESSION_ROOM);
+  const [agentInfo, setAgentInfo] = useState<{
+    name?: string;
+    present?: boolean;
+    dispatchId?: string;
+    dispatchState?: string;
+    dispatchJobs?: number;
+    jobStatuses?: Array<{ id?: string; status?: string; workerId?: string }>;
+    error?: string;
+  } | null>(null);
   const didFetch = useRef(false);
 
   useEffect(() => {
@@ -44,19 +57,22 @@ export default function Room() {
 
     (async () => {
       try {
+        const participant = `user-${Math.floor(Math.random() * 1000)}`;
+        const room = roomName;
         const resp = await fetch(
-          `/api/token?roomName=${ROOM_NAME}&participantName=user-${Math.floor(
-            Math.random() * 1000
-          )}`
+          `/api/token?roomName=${encodeURIComponent(
+            room
+          )}&participantName=${participant}`
         );
         const data = await resp.json();
         setToken(data.token);
         setAgentInfo(data.agent);
+        setRoomName(data.room ?? room);
       } catch (e) {
         console.error(e);
       }
     })();
-  }, []);
+  }, [roomName]);
 
   if (token === "") {
     return <div>Getting token...</div>;
@@ -68,17 +84,38 @@ export default function Room() {
       audio={true}
       token={token}
       serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
+      connectOptions={{
+        autoSubscribe: true,
+        publishDefaults: { audio: true, video: false },
+      }}
       data-lk-theme="default"
       style={{ height: "100vh" }}
     >
-      <RoomContent agentInfo={agentInfo} />
+      <RoomContent agentInfo={agentInfo} roomName={roomName || "pending-room"} />
     </LiveKitRoom>
   );
 }
 
-function RoomContent({ agentInfo }: { agentInfo?: any }) {
+function RoomContent({
+  agentInfo,
+  roomName,
+}: {
+  agentInfo?: {
+    name?: string;
+    present?: boolean;
+    dispatchId?: string;
+    dispatchState?: string;
+    dispatchJobs?: number;
+    jobStatuses?: Array<{ id?: string; status?: string; workerId?: string }>;
+    error?: string;
+  } | null;
+  roomName: string;
+}) {
   const roomState = useConnectionState();
-  const { agentTranscribing, userTranscribing } = useVoiceAssistant() as any;
+  const { agentTranscribing, userTranscribing } = useVoiceAssistant() as {
+    agentTranscribing?: { text?: string };
+    userTranscribing?: { text?: string };
+  };
   const participants = useParticipants();
   const agentParticipant = participants.find(
     (p: Participant) => isAgentIdentity(p.identity)
@@ -100,7 +137,12 @@ function RoomContent({ agentInfo }: { agentInfo?: any }) {
             >
               {roomState}
             </span>
+            <span className="ml-2 text-xs text-gray-500">(room: {roomName})</span>
           </div>
+          <StartAudio
+            label="Enable audio & mic"
+            className="px-3 py-1 text-xs rounded bg-blue-600 hover:bg-blue-500 text-white transition"
+          />
           <div className="text-gray-400">
             Agent Status:{" "}
             <span
@@ -117,7 +159,7 @@ function RoomContent({ agentInfo }: { agentInfo?: any }) {
               {agentInfo.dispatchJobs !== undefined ? `jobs:${agentInfo.dispatchJobs}` : ""}{" "}
               {agentInfo.jobStatuses && agentInfo.jobStatuses.length > 0
                 ? `jobStatus:${agentInfo.jobStatuses
-                    .map((j: any) => j.status || "unknown")
+                    .map((j) => j.status || "unknown")
                     .join(",")}`
                 : ""}{" "}
               {agentInfo.error ? `Error: ${agentInfo.error}` : ""}
@@ -159,7 +201,7 @@ function RoomContent({ agentInfo }: { agentInfo?: any }) {
             <div className="h-12 w-full text-center flex items-center justify-center">
               {agentTranscribing && (
                 <p className="text-blue-200 text-sm italic animate-pulse">
-                  "{agentTranscribing.text}"
+                  &quot;{agentTranscribing.text}&quot;
                 </p>
               )}
             </div>
@@ -174,7 +216,7 @@ function RoomContent({ agentInfo }: { agentInfo?: any }) {
             <div className="h-12 w-full text-center flex items-center justify-center">
               {userTranscribing && (
                 <p className="text-green-200 text-sm italic animate-pulse">
-                  "{userTranscribing.text}"
+                  &quot;{userTranscribing.text}&quot;
                 </p>
               )}
             </div>
@@ -191,7 +233,7 @@ function RoomContent({ agentInfo }: { agentInfo?: any }) {
 function AgentVisualizer() {
   const tracks = useTracks([Track.Source.Microphone]);
   const agentTrack = tracks.find(
-    (t) => t.participant.identity !== "me" && !t.participant.isLocal
+    (t) => !t.participant.isLocal && isAgentIdentity(t.participant.identity)
   );
 
   if (!agentTrack) {
