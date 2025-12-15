@@ -20,8 +20,7 @@ const DEFAULT_SESSION_ROOM = `session-${
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2, 10)
 }`;
-const AGENT_NAME =
-  process.env.NEXT_PUBLIC_AGENT_NAME || "my-voice-agent";
+const AGENT_NAME = process.env.NEXT_PUBLIC_AGENT_NAME || "my-voice-agent";
 
 function isAgentIdentity(identity?: string | null) {
   if (!identity) return false;
@@ -86,12 +85,14 @@ export default function Room() {
       serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}
       connectOptions={{
         autoSubscribe: true,
-        publishDefaults: { audio: true, video: false },
       }}
       data-lk-theme="default"
       style={{ height: "100vh" }}
     >
-      <RoomContent agentInfo={agentInfo} roomName={roomName || "pending-room"} />
+      <RoomContent
+        agentInfo={agentInfo}
+        roomName={roomName || "pending-room"}
+      />
     </LiveKitRoom>
   );
 }
@@ -117,8 +118,8 @@ function RoomContent({
     userTranscribing?: { text?: string };
   };
   const participants = useParticipants();
-  const agentParticipant = participants.find(
-    (p: Participant) => isAgentIdentity(p.identity)
+  const agentParticipant = participants.find((p: Participant) =>
+    isAgentIdentity(p.identity)
   );
   const isAgentConnected = !!agentParticipant;
   const agentLabel = agentParticipant?.identity || AGENT_NAME || "None";
@@ -137,7 +138,9 @@ function RoomContent({
             >
               {roomState}
             </span>
-            <span className="ml-2 text-xs text-gray-500">(room: {roomName})</span>
+            <span className="ml-2 text-xs text-gray-500">
+              (room: {roomName})
+            </span>
           </div>
           <StartAudio
             label="Enable audio & mic"
@@ -150,13 +153,17 @@ function RoomContent({
             >
               {isAgentConnected ? "Connected" : "Disconnected"}
             </span>
-            <span className="ml-2 text-gray-500 text-xs">(agent: {agentLabel})</span>
+            <span className="ml-2 text-gray-500 text-xs">
+              (agent: {agentLabel})
+            </span>
           </div>
           {agentInfo && (
             <div className="text-xs text-gray-500">
               Dispatch: {agentInfo.dispatchId || "not dispatched"}{" "}
               {agentInfo.dispatchState ? `(${agentInfo.dispatchState})` : ""}{" "}
-              {agentInfo.dispatchJobs !== undefined ? `jobs:${agentInfo.dispatchJobs}` : ""}{" "}
+              {agentInfo.dispatchJobs !== undefined
+                ? `jobs:${agentInfo.dispatchJobs}`
+                : ""}{" "}
               {agentInfo.jobStatuses && agentInfo.jobStatuses.length > 0
                 ? `jobStatus:${agentInfo.jobStatuses
                     .map((j) => j.status || "unknown")

@@ -1,4 +1,4 @@
-import { AgentDispatchState, Job } from '@livekit/protocol';
+import { AgentDispatchState } from '@livekit/protocol';
 import { AccessToken, AgentDispatchClient, RoomServiceClient } from 'livekit-server-sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
@@ -20,13 +20,19 @@ type JobStatus = {
 function normalizeDispatchState(state: unknown): string | undefined {
   if (state === undefined || state === null) return undefined;
   if (typeof state === 'string') return state;
-  if (typeof state === 'number') return AgentDispatchState[state] ?? String(state);
+  if (typeof state === 'number') {
+    const lookup = AgentDispatchState as typeof AgentDispatchState & Record<number, string>;
+    return lookup[state] ?? String(state);
+  }
   if (typeof state === 'object') {
     const inner = (state as { state?: unknown; value?: unknown; status?: unknown }).state
       ?? (state as { value?: unknown }).value
       ?? (state as { status?: unknown }).status;
     if (typeof inner === 'string') return inner;
-    if (typeof inner === 'number') return AgentDispatchState[inner] ?? String(inner);
+    if (typeof inner === 'number') {
+      const lookup = AgentDispatchState as typeof AgentDispatchState & Record<number, string>;
+      return lookup[inner] ?? String(inner);
+    }
     try {
       return JSON.stringify(state);
     } catch {
@@ -100,10 +106,10 @@ export async function GET(req: NextRequest) {
     );
     agentDispatchId = dispatch?.id;
     dispatchState = normalizeDispatchState(dispatch?.state);
-    const jobs = dispatch?.jobs;
+    const jobs = (dispatch as any)?.jobs as any[] | undefined;
     dispatchJobs = Array.isArray(jobs) ? jobs.length : undefined;
     jobStatuses = Array.isArray(jobs)
-      ? jobs.map((j: Job) => ({
+      ? jobs.map((j: any) => ({
           id: j?.id,
           status: normalizeDispatchState(j?.state?.status),
           workerId: j?.state?.workerId,
@@ -115,10 +121,10 @@ export async function GET(req: NextRequest) {
     if (latest) {
       agentDispatchId = latest.id;
       dispatchState = normalizeDispatchState(latest.state);
-      const latestJobs = latest?.jobs;
+      const latestJobs = (latest as any)?.jobs as any[] | undefined;
       dispatchJobs = Array.isArray(latestJobs) ? latestJobs.length : dispatchJobs;
       jobStatuses = Array.isArray(latestJobs)
-        ? latestJobs.map((j: Job) => ({
+        ? latestJobs.map((j: any) => ({
             id: j?.id,
             status: normalizeDispatchState(j?.state?.status),
             workerId: j?.state?.workerId,
