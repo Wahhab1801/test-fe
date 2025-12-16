@@ -1,4 +1,4 @@
-import { Tone } from "@/types/ui";
+import { Tone } from "@/app/types/ui";
 
 type StatusBadgeProps = {
   label: string;
